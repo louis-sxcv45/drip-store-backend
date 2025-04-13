@@ -13,7 +13,7 @@ class User extends Authenticatable
 {
     //
     use HasFactory, HasApiTokens, Notifiable;
-    
+
     protected $fillable = [
         'name',
         'email',
@@ -46,5 +46,5 @@ class User extends Authenticatable
         ];
     }
 
-    
+
 }
