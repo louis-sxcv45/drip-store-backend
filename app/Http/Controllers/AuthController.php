@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Request;
 
 class AuthController extends Controller
 {
@@ -21,14 +21,18 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        //
-        dd($request);
+
         $fields = $request->validate([
             'name' => 'required|string',
             'email' => 'required|string|email|unique:users,email',
             'password' => 'required|string|confirmed',
             'password_confirmation' => 'required|string',
         ]);
+
+        dd("asdfg");
+
+
+
 
         $user = User::create([
             'name'=> $fields['name'],
@@ -43,7 +47,7 @@ class AuthController extends Controller
             'token' => $token
         ];
 
-        return response($response, 201);
+        return "test";
     }
 
     public function login(Request $request)
