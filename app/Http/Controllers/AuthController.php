@@ -104,9 +104,70 @@ class AuthController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function updateUserProfile(Request $request)
     {
-        //
+        // 1. Cari user yang login terlebih dahulu.
+        $user = Auth::user();
+
+        $validate = $request->validate([
+            'name' => 'string',
+            'phone' => 'string',
+            'address' => 'string',
+            'profile_picture' => 'file|extensions:jpg,png,jpeg|mimes:jpg,png,jpeg|max:2048',
+        ]);
+
+
+        // 2. Upload gambar jika ada
+        if($request->hasFile('profile_picture')){
+            $file = $request['profile_picture'];
+            $filename = time() . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('images'), $filename);
+            $validate['profile_picture'] = $filename;
+        }
+
+        // 3. Update data user
+        $user->name = $validate['name'] ?? $user->name;
+        $user->phone = $validate['phone'] ?? $user->phone;
+        $user->address = $validate['address'] ?? $user->address;
+        $user->profile_picture = $validate['profile_picture'] ?? $user->profile_picture;
+        $user->save();
+
+        return response([
+            'user' => [
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'profile_picture' => $user->profile_picture ? url('images/' . $user->profile_picture) : null,
+            ]
+        ], 200);
+    }
+
+    public function updatePassword(Request $request){
+        $user = Auth::user();
+
+        $validate = $request->validate([
+            'old_password' => 'required|string',
+            'new_password' => 'required|string|confirmed',
+            'new_password_confirmation' => 'required|string',
+        ], [
+            'old_password.required' => 'Old Password is required',
+            'new_password.required' => 'New Password is required',
+            'new_password_confirmation.required' => 'New Password Confirmation is required',
+            'new_password.confirmed' => 'New Password Confirmation does not match',
+        ]);
+
+        if(!Hash::check($validate['old_password'], $user->password)){
+            return response([
+                'message' => 'Old Password is incorrect'
+            ], 401);
+        }
+
+        $user->password = bcrypt($validate['new_password']);
+        $user->save();
+
+        return response([
+            'message' => 'Password updated successfully'
+        ], 200);
     }
 
     /**

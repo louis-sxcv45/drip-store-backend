@@ -8,6 +8,8 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware("auth:sanctum")->group(function () {
     Route::get("/profile", [AuthController::class, 'show']);
+    Route::post("/update-user-profile", [AuthController::class, 'updateUserProfile']);
+    Route::post("/update-password", [AuthController::class, 'updatePassword']);
 });
 
 
