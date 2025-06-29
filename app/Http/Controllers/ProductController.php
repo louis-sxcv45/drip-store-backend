@@ -55,6 +55,7 @@ class ProductController extends Controller {
             'quantity' => $product->quantity,
             'image' => asset('storage/' . $product->image),
             'name_store' => $product->store->name ?? 'Unknown Store',
+            'store_id' => $product->store_id,
 	        'logo' => asset('storage/' . $product->store->logo) ?? 'Logo',
             'product_sizes' => $product->productSizes->map(function ($size){
                 return [
