@@ -12,10 +12,6 @@ class Product extends Model
     
     protected $guarded = [];
 
-    protected $casts = [
-        'image' => 'array',
-    ];
-
     public function store() {
         return $this->belongsTo(Store::class);
     }

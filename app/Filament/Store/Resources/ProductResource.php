@@ -58,8 +58,7 @@ class ProductResource extends Resource
                     ->required(),
                 FileUpload::make('image')
                     ->required()
-                    ->image()
-                    ->multiple(),
+                    ->image(),
                 Repeater::make('productSizes')
                     ->relationship()
                     ->addActionAlignment(Alignment::Start)

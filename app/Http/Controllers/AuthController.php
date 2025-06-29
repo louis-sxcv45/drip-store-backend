@@ -9,13 +9,6 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
 
     /**
      * Show the form for creating a new resource.
@@ -41,17 +34,18 @@ class AuthController extends Controller
 
         $response = [
             'user' => $user,
-            'token' => $token
+            'token' => $token,
+            'message' => 'User registered successfully'
         ];
 
-        return $response;
+        return response($response, 201);
     }
 
     public function login(Request $request)
     {
         //
         $fields = $request->validate([
-            'email' => 'required|string|email|exists:users,email',
+            'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
@@ -74,14 +68,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
      * Display the specified resource.
      */
     public function show()
@@ -89,16 +75,14 @@ class AuthController extends Controller
         $user = Auth::user();
 
         return response([
-            'user' => $user
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'profile_picture' => $user->profile_picture ? url('images/' . $user->profile_picture) : null,
+            ]
         ], 200);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
     }
 
     /**
@@ -139,7 +123,7 @@ class AuthController extends Controller
                 'address' => $user->address,
                 'profile_picture' => $user->profile_picture ? url('images/' . $user->profile_picture) : null,
             ]
-        ], 200);
+        ], 201);
     }
 
     public function updatePassword(Request $request){
@@ -167,14 +151,6 @@ class AuthController extends Controller
 
         return response([
             'message' => 'Password updated successfully'
-        ], 200);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        ], 201);
     }
 }
