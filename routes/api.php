@@ -17,7 +17,7 @@ Route::middleware("auth:sanctum")->group(function () {
     Route::post("/update-password", [AuthController::class, "updatePassword"]);
 });
 
-Route::middleware("auth:sanctum")->post("/logout", function (Request $request) {
+Route::middleware("auth:sanctum")->delete("/logout", function (Request $request) {
     $request->user()->currentAccessToken()->delete();
     return response()->json([
         "message" => "Logged out successfully",
@@ -35,6 +35,7 @@ Route::middleware("auth:sanctum")
     ->prefix("/transaksi")
     ->group(function () {
         Route::post("/checkout", [TransactionController::class, "checkout"]);
+        Route::get("/history", [TransactionController::class, "history"]);
     });
 
 Route::post("/midtrans-webhook", [

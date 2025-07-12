@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\TransactionItem;
-use Illuminate\Http\Request;
-use App\Models\Product;
-use Illuminate\Support\Facades\Validator;
-use Midtrans\Notification;
 use Midtrans\Snap;
 use Midtrans\Config;
+use App\Models\Product;
+use Midtrans\Notification;
+use App\Models\Transaction;
+use Illuminate\Http\Request;
+use App\Models\TransactionItem;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class TransactionController extends Controller
 {
@@ -92,14 +93,16 @@ class TransactionController extends Controller
         ];
     }
 
-    public function webhook(Request $request) {
-        $notification = new Notification();
+    public function webhook(Request $request)
+    {
+        // $notification = new Notification();
+        $notification = (object) $request->all();
 
         $orderId = $notification->order_id;
         $transactionStatus = $notification->transaction_status;
         $fraudStatus = $notification->fraud_status;
 
-        dd($transactionStatus);
+        // dd($transactionStatus);
 
         // Verifikasi signature key
         $signatureKey = hash('sha512', $orderId . $notification->status_code . $notification->gross_amount . Config::$serverKey);
@@ -107,7 +110,7 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
-         $transaction = Transaction::where('id', $orderId)->first();
+        $transaction = Transaction::where('id', $orderId)->first();
 
         if ($transactionStatus === 'settlement') {
             $transaction->status = 2; // Set to 'settlement'
@@ -124,5 +127,43 @@ class TransactionController extends Controller
         }
 
         return response()->json(['message' => 'Webhook processed successfully']);
+    }
+
+    public function history(Request $request)
+    {
+        $user = $request->user();
+
+        $transactions = Transaction::with([
+            'transactionItems' => function ($query) {
+                $query->with([
+                    'product' => function ($productQuery) {
+                        $productQuery->join('stores', 'products.store_id', '=', 'stores.id')
+                            ->select('products.*', 'stores.name_store', 'stores.logo');
+                    }
+                ]);
+            }
+        ])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($transaction) {
+                foreach ($transaction->transactionItems as $item) {
+                    if (isset($item->product->logo)) {
+                        $logo = $item->product->logo;
+
+                        // Hanya generate URL absolut jika belum dimulai dengan 'http'
+                        if (!str_starts_with($logo, 'http')) {
+                            $item->product->logo = url(Storage::url($logo));
+                        }
+                    }
+                }
+                return $transaction;
+            })
+            ->toArray();
+
+        return response()->json([
+            'message' => 'Transaction history fetched successfully',
+            'data' => $transactions
+        ]);
     }
 }

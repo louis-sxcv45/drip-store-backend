@@ -22,9 +22,9 @@ class ProductController extends Controller {
                 'id' => $product->id,
                 'name_product' => $product->name_product,
                 'price' => $product->price,
-                'image' => asset('storage/' . $product->image),
+                'image' => $product->image,
                 'name_store' => $product->store->name ?? 'Unknown Store',
-                'logo' => asset('storage/' . $product->store->logo) ?? 'Logo',
+                'logo' => $product->store->logo,
             ];
         });
 
@@ -53,10 +53,10 @@ class ProductController extends Controller {
             'description' => $product->description,
             'category' => $product->category,
             'quantity' => $product->quantity,
-            'image' => asset('storage/' . $product->image),
+            'image' =>  $product->image,
             'name_store' => $product->store->name ?? 'Unknown Store',
             'store_id' => $product->store_id,
-	        'logo' => asset('storage/' . $product->store->logo) ?? 'Logo',
+	        'logo' => $product->store->logo,
             'product_sizes' => $product->productSizes->map(function ($size){
                 return [
                     'id' => $size->id,

@@ -41,6 +41,8 @@ class StoreResource extends Resource
                     ->sortable(),
                 TextColumn::make('address'),
                 TextColumn::make('phone'),
+                TextColumn::make('no_rekening')
+                    ->label('No Rekening'),
                 TextColumn::make('email'),
                 ImageColumn::make('logo')
                 ->circular()
@@ -72,8 +74,6 @@ class StoreResource extends Resource
     {
         return [
             'index' => Pages\ListStores::route('/'),
-            'create' => Pages\CreateStore::route('/create'),
-            'edit' => Pages\EditStore::route('/{record}/edit'),
         ];
     }
 

@@ -57,4 +57,12 @@ class Store extends Authenticatable implements FilamentUser
     public function product() {
         return $this->hasMany(Product::class);
     }
+
+    public function getLogoAttribute($value)
+{
+    if ($value && !preg_match('/^https?:\/\//', $value)) {
+        return asset('storage/' . $value);
+    }
+    return $value;
+}
 }

@@ -50,6 +50,10 @@ class Register extends BaseRegister
                                 ->tel()
                                 ->required(),
 
+                            TextInput::make('no_rekening')
+                                ->label('No Rekening')
+                                ->required(),
+
                             TextInput::make('email')
                                 ->label('Email')
                                 ->email()
@@ -90,7 +94,6 @@ class Register extends BaseRegister
                                 ->alignCenter()
                                 ->placeholder('Upload Your Store Logo')
                                 ->image()
-                                ->required()
                                 ->imageEditor()
                                 ->imageEditorAspectRatios([
                                     null,

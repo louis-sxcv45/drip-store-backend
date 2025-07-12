@@ -9,14 +9,24 @@ class Product extends Model
 {
     //
     use HasFactory;
-    
+
     protected $guarded = [];
 
-    public function store() {
+    public function store()
+    {
         return $this->belongsTo(Store::class);
     }
 
-    public function productSizes() {
+    public function productSizes()
+    {
         return $this->hasMany(ProductSize::class);
     }
+
+    public function getImageAttribute($value)
+{
+    if ($value && !preg_match('/^https?:\/\//', $value)) {
+        return asset('storage/' . $value);
+    }
+    return $value;
+}
 }

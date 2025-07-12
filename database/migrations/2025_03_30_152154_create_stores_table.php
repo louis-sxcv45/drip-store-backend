@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('owner_name');
             $table->string('address');
             $table->string('phone');
+            $table->string('no_rekening');
             $table->string('email')->unique(); 
             $table->string('password');
             $table->string('logo'); 

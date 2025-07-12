@@ -82,7 +82,8 @@ class ProductResource extends Resource
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('price')
-                    ->sortable(),
+                    ->sortable()
+                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.')),
                 TextColumn::make('category')
                     ->searchable(),
                 TextColumn::make('quantity'),
