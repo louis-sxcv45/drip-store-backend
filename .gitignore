@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/laravel
+.DS_Store
+/.DS_Store
