@@ -12,6 +12,11 @@ class Product extends Model
 
     protected $guarded = [];
 
+    protected $casts =  [
+        "quantity" => "integer",
+        "store_id" => "integer",
+    ];
+
     public function store()
     {
         return $this->belongsTo(Store::class);
