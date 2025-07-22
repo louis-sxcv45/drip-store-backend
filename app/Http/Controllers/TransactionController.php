@@ -22,22 +22,19 @@ class TransactionController extends Controller
         Config::$isSanitized = true;
         Config::$is3ds = true;
     }
+
     public function checkout(Request $request)
     {
-        // TODO: Create validation
         $validator = Validator::make(
             $request->all(),
             [
                 "product_ids" => "required|array",
                 "product_ids.*" => "exists:products,id",
-                "store_id" => "required|exists:stores,id",
             ],
             [
                 "product_ids.required" => "Product IDs are required",
                 "product_ids.array" => "Product IDs must be an array",
                 "product_ids.*.exists" => "Product ID does not exist",
-                "store_id.required" => "Store ID is required",
-                "store_id.exists" => "Store ID does not exist",
             ]
         );
 
@@ -46,36 +43,47 @@ class TransactionController extends Controller
         }
 
         // Calculate total amount
+        $products = Product::whereIn('id', $request->product_ids)->get();
+        $grouped = $products->groupBy('store_id');
+
         $totalAmount = 0;
-        foreach ($request->product_ids as $productId) {
-            $product = Product::find($productId);
-            $totalAmount += $product->price;
-        }
+        $userId = auth()->user()->id;
+        $transactionIds = [];
+        $firstTransactionId = null;
 
-        // Create Transaksi
-        $transaksi = Transaction::create([
-            "user_id" => auth()->user()->id,
-            "store_id" => $request->store_id,
-            "total_amount" => $totalAmount,
-            "status" => 1,
-        ]);
+        foreach ($grouped as $storeId => $productsInStore) {
+            $storeTotal = $productsInStore->sum('price');
 
-        foreach ($request->product_ids as $productId) {
-            $product = Product::find($productId);
-            $product->decrement("quantity");
-
-            // Create transaction items
-            TransactionItem::create([
-                "transaction_id" => $transaksi->id,
-                "product_id" => $productId,
-                "quantity" => 1,
-                "price" => $product->price,
+            $transaction = Transaction::create([
+                'user_id' => $userId,
+                'store_id' => $storeId,
+                'total_amount' => $storeTotal,
+                'status' => 1,
             ]);
+
+            if (!$firstTransactionId) {
+                $firstTransactionId = $transaction->id;
+            }
+
+            $transactionIds[] = $transaction->id;
+
+            foreach ($productsInStore as $product) {
+                $product->decrement("quantity");
+
+                TransactionItem::create([
+                    'transaction_id' => $transaction->id,
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'price' => $product->price,
+                ]);
+            }
+
+            $totalAmount += $storeTotal;
         }
 
         $params = [
             "transaction_details" => [
-                "order_id" => $transaksi->id,
+                "order_id" => $firstTransactionId,
                 "gross_amount" => $totalAmount,
             ],
             "customer_details" => [
@@ -83,6 +91,7 @@ class TransactionController extends Controller
                 "email" => auth()->user()->email,
                 "phone" => auth()->user()->phone,
             ],
+            "custom_field1" => implode(',', $transactionIds), // Simpan semua transaction IDs
         ];
 
         $snap = Snap::getSnapToken($params);
@@ -95,14 +104,11 @@ class TransactionController extends Controller
 
     public function webhook(Request $request)
     {
-        // $notification = new Notification();
         $notification = (object) $request->all();
 
         $orderId = $notification->order_id;
         $transactionStatus = $notification->transaction_status;
         $fraudStatus = $notification->fraud_status;
-
-        // dd($transactionStatus);
 
         // Verifikasi signature key
         $signatureKey = hash('sha512', $orderId . $notification->status_code . $notification->gross_amount . Config::$serverKey);
@@ -110,23 +116,41 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
-        $transaction = Transaction::where('id', $orderId)->first();
+        // Cari transaction utama berdasarkan order_id
+        $mainTransaction = Transaction::where('id', $orderId)->first();
 
-        if ($transactionStatus === 'settlement') {
-            $transaction->status = 2; // Set to 'settlement'
-            $transaction->save();
-        } elseif ($transactionStatus === 'pending') {
-            $transaction->status = 1; // Set to 'pending'
-            $transaction->save();
-        } elseif ($transactionStatus === 'cancel' || $transactionStatus === 'deny') {
-            $transaction->status = 3; // Set to 'cancelled'
-            $transaction->save();
-        } elseif ($transactionStatus === 'expire') {
-            $transaction->status = 4; // Set to 'expired'
+        if (!$mainTransaction) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        // Cari semua transactions yang dibuat dalam waktu bersamaan (dalam 1 menit) oleh user yang sama
+        $relatedTransactions = Transaction::where('user_id', $mainTransaction->user_id)
+            ->whereBetween('created_at', [
+                $mainTransaction->created_at->subMinute(),
+                $mainTransaction->created_at->addMinute()
+            ])
+            ->where('status', 1) // Hanya yang masih pending
+            ->get();
+
+        // Update status semua related transactions
+        foreach ($relatedTransactions as $transaction) {
+            if ($transactionStatus === 'settlement') {
+                $transaction->status = 2; // Set to 'settlement'
+            } elseif ($transactionStatus === 'pending') {
+                $transaction->status = 1; // Set to 'pending'
+            } elseif ($transactionStatus === 'cancel' || $transactionStatus === 'deny') {
+                $transaction->status = 3; // Set to 'cancelled'
+            } elseif ($transactionStatus === 'expire') {
+                $transaction->status = 4; // Set to 'expired'
+            }
+
             $transaction->save();
         }
 
-        return response()->json(['message' => 'Webhook processed successfully']);
+        return response()->json([
+            'message' => 'Webhook processed successfully',
+            'updated_transactions' => $relatedTransactions->count()
+        ]);
     }
 
     public function history(Request $request)
