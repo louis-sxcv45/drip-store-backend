@@ -30,6 +30,7 @@ Route::get("/user", function (Request $request) {
 
 Route::get("/products", [ProductController::class, "index"]);
 Route::get("/products/{id}", [ProductController::class, "show"]);
+Route::get("/search", [ProductController::class, "search"]);
 
 Route::middleware("auth:sanctum")
     ->prefix("/transaksi")
